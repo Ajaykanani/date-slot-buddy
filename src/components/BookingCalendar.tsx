@@ -24,6 +24,7 @@ const BookingCalendar = () => {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
+  const [editingBooking, setEditingBooking] = useState<BookingData | null>(null);
 
   const isDateBooked = (date: Date) => {
     return bookings.some(booking => isSameDay(booking.date, date));
@@ -49,11 +50,23 @@ const BookingCalendar = () => {
   };
 
   const handleBookingSubmit = (bookingData: Omit<BookingData, 'id'>) => {
-    const newBooking: BookingData = {
-      ...bookingData,
-      id: Date.now().toString()
-    };
-    setBookings([...bookings, newBooking]);
+    if (editingBooking) {
+      // Update existing booking
+      const updatedBookings = bookings.map(booking => 
+        booking.id === editingBooking.id 
+          ? { ...bookingData, id: editingBooking.id }
+          : booking
+      );
+      setBookings(updatedBookings);
+      setEditingBooking(null);
+    } else {
+      // Create new booking
+      const newBooking: BookingData = {
+        ...bookingData,
+        id: Date.now().toString()
+      };
+      setBookings([...bookings, newBooking]);
+    }
     setShowBookingForm(false);
     setSelectedDate(undefined);
   };
@@ -61,6 +74,19 @@ const BookingCalendar = () => {
   const handleViewDetails = (booking: BookingData) => {
     setSelectedBooking(booking);
     setShowBookingDetails(true);
+  };
+
+  const handleEditBooking = (booking: BookingData) => {
+    setEditingBooking(booking);
+    setSelectedDate(booking.date);
+    setShowBookingDetails(false);
+    setShowBookingForm(true);
+  };
+
+  const handleDeleteBooking = (bookingId: string) => {
+    setBookings(bookings.filter(booking => booking.id !== bookingId));
+    setShowBookingDetails(false);
+    setSelectedBooking(null);
   };
 
   return (
@@ -173,9 +199,11 @@ const BookingCalendar = () => {
           onClose={() => {
             setShowBookingForm(false);
             setSelectedDate(undefined);
+            setEditingBooking(null);
           }}
           onSubmit={handleBookingSubmit}
           selectedDate={selectedDate}
+          editingBooking={editingBooking}
         />
 
         <BookingDetails
@@ -185,6 +213,8 @@ const BookingCalendar = () => {
             setSelectedBooking(null);
           }}
           booking={selectedBooking}
+          onEdit={() => selectedBooking && handleEditBooking(selectedBooking)}
+          onDelete={() => selectedBooking && handleDeleteBooking(selectedBooking.id)}
         />
       </div>
     </div>

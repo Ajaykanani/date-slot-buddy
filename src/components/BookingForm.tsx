@@ -28,22 +28,37 @@ interface BookingFormProps {
   onClose: () => void;
   onSubmit: (data: Omit<BookingData, 'id'>) => void;
   selectedDate?: Date;
+  editingBooking?: BookingData | null;
 }
 
 export const BookingForm: React.FC<BookingFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  selectedDate
+  selectedDate,
+  editingBooking
 }) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
+    setValue
   } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema)
   });
+
+  // Pre-fill form when editing
+  React.useEffect(() => {
+    if (editingBooking) {
+      setValue('fullName', editingBooking.fullName);
+      setValue('phoneNumber', editingBooking.phoneNumber);
+      setValue('price', editingBooking.price);
+      setValue('otherDetails', editingBooking.otherDetails);
+    } else {
+      reset();
+    }
+  }, [editingBooking, setValue, reset]);
 
   const handleFormSubmit = (data: BookingFormData) => {
     if (!selectedDate) return;
@@ -70,7 +85,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
-            Book Date: {selectedDate && format(selectedDate, 'MMMM dd, yyyy')}
+            {editingBooking ? 'Edit Booking' : 'Book Date'}: {selectedDate && format(selectedDate, 'MMMM dd, yyyy')}
           </DialogTitle>
         </DialogHeader>
         
@@ -146,7 +161,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               Cancel
             </Button>
             <Button type="submit" className="flex-1 bg-gradient-to-r from-primary to-primary-glow">
-              Book Date
+              {editingBooking ? 'Update Booking' : 'Book Date'}
             </Button>
           </div>
         </form>

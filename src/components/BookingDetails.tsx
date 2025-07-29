@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, User, Phone, DollarSign, FileText } from 'lucide-react';
+import { Calendar, User, Phone, DollarSign, FileText, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { BookingData } from './BookingCalendar';
 
@@ -11,12 +11,16 @@ interface BookingDetailsProps {
   isOpen: boolean;
   onClose: () => void;
   booking: BookingData | null;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 export const BookingDetails: React.FC<BookingDetailsProps> = ({
   isOpen,
   onClose,
-  booking
+  booking,
+  onEdit,
+  onDelete
 }) => {
   if (!booking) return null;
 
@@ -81,7 +85,18 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
 
           <Separator />
 
-          <Button onClick={onClose} className="w-full">
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={onEdit} className="flex-1">
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+            <Button variant="destructive" onClick={onDelete} className="flex-1">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+          
+          <Button variant="secondary" onClick={onClose} className="w-full">
             Close
           </Button>
         </div>
