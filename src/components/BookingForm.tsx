@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar, User, Phone, DollarSign, FileText } from 'lucide-react';
+import { Calendar, User, Phone, IndianRupee, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { BookingData } from './BookingCalendar';
 
@@ -126,7 +126,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="price" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
+              <IndianRupee className="w-4 h-4" />
               Price
             </Label>
             <Input
