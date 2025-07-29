@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,13 +8,15 @@ import { format, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BookingForm } from './BookingForm';
 import { BookingDetails } from './BookingDetails';
+import { environment } from '@/environments/environment.development';
+const { apiUrl } = environment;
 
 export interface BookingData {
   id: string;
   date: Date;
   fullName: string;
   phoneNumber: string;
-  price: string;
+  price: number;
   otherDetails: string;
 }
 
@@ -25,6 +27,26 @@ const BookingCalendar = () => {
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
   const [editingBooking, setEditingBooking] = useState<BookingData | null>(null);
+
+  const fetchBookings = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/booking`);
+      const result = await res.json();
+      if (result.message === 'success' && Array.isArray(result.data)) {
+        const formattedBookings: BookingData[] = result.data.map((booking) => ({
+          id: booking._id,
+          date: new Date(booking.date),
+          fullName: booking.fullName,
+          phoneNumber: booking.phone,
+          price: booking.price,
+          otherDetails: booking.details
+        }));
+        setBookings(formattedBookings);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
+  }, []);
 
   const isDateBooked = (date: Date) => {
     return bookings.some(booking => isSameDay(booking.date, date));
@@ -89,6 +111,10 @@ const BookingCalendar = () => {
     setSelectedBooking(null);
   };
 
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
@@ -117,7 +143,12 @@ const BookingCalendar = () => {
                 mode="single"
                 selected={selectedDate}
                 onSelect={handleDateSelect}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const now = new Date();
+                  // Set current date to midnight (start of today)
+                  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                  return date < today;
+                }}
                 className={cn("w-full pointer-events-auto")}
                 modifiers={{
                   booked: (date) => isDateBooked(date)

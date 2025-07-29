@@ -53,7 +53,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     if (editingBooking) {
       setValue('fullName', editingBooking.fullName);
       setValue('phoneNumber', editingBooking.phoneNumber);
-      setValue('price', editingBooking.price);
+      setValue('price', String(editingBooking.price));
       setValue('otherDetails', editingBooking.otherDetails);
     } else {
       reset();
@@ -67,7 +67,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       date: selectedDate,
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
-      price: data.price,
+      price: Number(data.price),
       otherDetails: data.otherDetails || ''
     });
     
