@@ -113,11 +113,21 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             </Label>
             <Input
               id="phoneNumber"
-              {...register('phoneNumber')}
               placeholder="Enter 10-digit mobile number"
               type="tel"
               maxLength={10}
               className="transition-all focus:ring-2 focus:ring-primary/20"
+              {...register('phoneNumber', {
+                required: 'Phone number is required',
+                pattern: {
+                  value: /^[0-9]{10}$/,
+                  message: 'Phone number must be exactly 10 digits',
+                },
+              })}
+              onInput={(e) => {
+                const input = e.target as HTMLInputElement;
+                input.value = input.value.replace(/[^0-9]/g, '');
+              }}
             />
             {errors.phoneNumber && (
               <p className="text-sm text-destructive">{errors.phoneNumber.message}</p>
