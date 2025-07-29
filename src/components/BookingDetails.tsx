@@ -62,7 +62,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
               <DollarSign className="w-5 h-5 text-primary mt-0.5" />
               <div className="flex-1">
                 <p className="font-medium text-sm text-muted-foreground">Price</p>
-                <p className="font-semibold text-lg text-primary">${booking.price}</p>
+                <p className="font-semibold text-lg text-primary">₹{booking.price}</p>
               </div>
             </div>
 

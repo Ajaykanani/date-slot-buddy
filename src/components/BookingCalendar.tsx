@@ -78,12 +78,13 @@ const BookingCalendar = () => {
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Calendar Section */}
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="shadow-lg border-0 bg-card/60 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarIcon className="w-5 h-5 text-primary" />
                 Select Date
               </CardTitle>
+              <p className="text-sm text-muted-foreground">Click on any date to book or view details</p>
             </CardHeader>
             <CardContent>
               <Calendar
@@ -103,26 +104,23 @@ const BookingCalendar = () => {
                   }
                 }}
               />
-              <div className="mt-4 space-y-2">
+              <div className="mt-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-success rounded"></div>
+                  <div className="w-4 h-4 bg-success rounded-full"></div>
                   <span className="text-sm text-muted-foreground">Booked dates</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-primary rounded"></div>
-                  <span className="text-sm text-muted-foreground">Available for booking</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Bookings List */}
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="shadow-lg border-0 bg-card/60 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <User className="w-5 h-5 text-primary" />
                 Recent Bookings
               </CardTitle>
+              <p className="text-sm text-muted-foreground">View all booked dates and details</p>
             </CardHeader>
             <CardContent>
               {bookings.length === 0 ? (
@@ -138,7 +136,7 @@ const BookingCalendar = () => {
                     .map((booking) => (
                       <div
                         key={booking.id}
-                        className="flex items-center justify-between p-3 bg-accent/50 rounded-lg border transition-colors hover:bg-accent"
+                        className="flex items-center justify-between p-4 bg-gradient-to-r from-accent/30 to-accent/50 rounded-xl border border-accent/30 transition-all duration-200 hover:bg-accent/70 hover:shadow-md"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -150,7 +148,7 @@ const BookingCalendar = () => {
                           <p className="text-xs text-muted-foreground">{booking.phoneNumber}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-primary">${booking.price}</p>
+                          <p className="font-semibold text-primary">₹{booking.price}</p>
                           <Button
                             variant="ghost"
                             size="sm"

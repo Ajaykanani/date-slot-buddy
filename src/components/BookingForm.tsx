@@ -13,8 +13,11 @@ import { BookingData } from './BookingCalendar';
 
 const bookingSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
-  price: z.string().min(1, 'Price is required'),
+  phoneNumber: z.string()
+    .regex(/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian mobile number'),
+  price: z.string()
+    .regex(/^\d+$/, 'Price must be a valid number')
+    .refine((val) => parseInt(val) > 0, 'Price must be greater than 0'),
   otherDetails: z.string().optional()
 });
 
@@ -96,7 +99,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             <Input
               id="phoneNumber"
               {...register('phoneNumber')}
-              placeholder="Enter your phone number"
+              placeholder="Enter 10-digit mobile number"
+              type="tel"
+              maxLength={10}
               className="transition-all focus:ring-2 focus:ring-primary/20"
             />
             {errors.phoneNumber && (
@@ -112,7 +117,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             <Input
               id="price"
               {...register('price')}
-              placeholder="Enter price amount"
+              placeholder="Enter amount in rupees"
+              type="number"
+              min="1"
               className="transition-all focus:ring-2 focus:ring-primary/20"
             />
             {errors.price && (
