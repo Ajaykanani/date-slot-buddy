@@ -71,28 +71,61 @@ const BookingCalendar = () => {
     }
   };
 
-  const handleBookingSubmit = (bookingData: Omit<BookingData, 'id'>) => {
-    if (editingBooking) {
-      // Update existing booking
-      const updatedBookings = bookings.map(booking => 
-        booking.id === editingBooking.id 
-          ? { ...bookingData, id: editingBooking.id }
-          : booking
-      );
-      setBookings(updatedBookings);
-      setEditingBooking(null);
-    } else {
-      // Create new booking
-      const newBooking: BookingData = {
-        ...bookingData,
-        id: Date.now().toString()
-      };
-      setBookings([...bookings, newBooking]);
+  const handleBookingSubmit = async (bookingData: Omit<BookingData, 'id'>) => {
+    const payload = {
+      date: format(bookingData.date, 'yyyy-MM-dd'),
+      fullName: bookingData.fullName,
+      phone: bookingData.phoneNumber,
+      price: bookingData.price,
+      details: bookingData.otherDetails || "",
+    };
+  
+    try {
+      if (editingBooking) {
+        // PUT /booking/:id (update booking)
+        const res = await fetch(`${apiUrl}/booking/${editingBooking.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+  
+        const result = await res.json();
+        if (result.message === 'success') {
+          console.log('Booking updated successfully');
+        } else {
+          console.error('Error updating booking:', result);
+        }
+      } else {
+        // POST /booking (create booking)
+        const res = await fetch(`${apiUrl}/booking`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+  
+        const result = await res.json();
+        if (result.message === 'success') {
+          console.log('Booking created successfully');
+        } else {
+          console.error('Error creating booking:', result);
+        }
+      }
+  
+      // Refresh bookings
+      fetchBookings();
+    } catch (error) {
+      console.error('Booking submit error:', error);
     }
+  
+    // Reset states
+    setEditingBooking(null);
     setShowBookingForm(false);
     setSelectedDate(undefined);
   };
-
   const handleViewDetails = (booking: BookingData) => {
     setSelectedBooking(booking);
     setShowBookingDetails(true);
@@ -105,8 +138,26 @@ const BookingCalendar = () => {
     setShowBookingForm(true);
   };
 
-  const handleDeleteBooking = (bookingId: string) => {
-    setBookings(bookings.filter(booking => booking.id !== bookingId));
+  const handleDeleteBooking = async (bookingId: string) => {
+    try {
+        // DELETE /booking/:id (delete booking)
+        const res = await fetch(`${apiUrl}/booking/${bookingId}`, {
+          method: 'DELETE',
+        });
+  
+        const result = await res.json();
+        if (result.message === 'success') {
+          console.log('Booking deleted successfully');
+        } else {
+          console.error('Error updating booking:', result);
+        }
+     
+  
+      // Refresh bookings
+      fetchBookings();
+    } catch (error) {
+      console.error('Booking submit error:', error);
+    }
     setShowBookingDetails(false);
     setSelectedBooking(null);
   };
@@ -189,7 +240,7 @@ const BookingCalendar = () => {
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {bookings
-                    .sort((a, b) => a.date.getTime() - b.date.getTime())
+                    .sort((a, b) => b.date.getTime() - a.date.getTime())
                     .map((booking) => (
                       <div
                         key={booking.id}
