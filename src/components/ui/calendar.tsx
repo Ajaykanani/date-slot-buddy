@@ -1,6 +1,9 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { format } from "date-fns";
+import { gu } from "date-fns/locale";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,10 +16,33 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+  const { language } = useLanguage();
+
+  // Get formatted month and year
+  const formatCaption = (date: Date) => {
+    return format(date, 'MMMM yyyy', {
+      locale: language === 'gu' ? gu : undefined,
+    });
+  };
+
+  // Get weekday names based on language
+  const getWeekdayNames = () => {
+    return language === 'gu'
+      ? ['રવિ', 'સોમ', 'મંગળ', 'બુધ', 'ગુરુ', 'શુક્ર', 'શનિ']
+      : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  };
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
+      formatters={{
+        formatCaption: (date, options) => formatCaption(date),
+        formatWeekdayName: (date, options) => {
+          const weekdays = getWeekdayNames();
+          return weekdays[date.getDay()];
+        }
+      }}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
@@ -55,6 +81,7 @@ function Calendar({
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
       }}
+      locale={language === 'gu' ? gu : undefined}
       {...props}
     />
   );
