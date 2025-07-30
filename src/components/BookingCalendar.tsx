@@ -63,7 +63,7 @@ const BookingCalendar = () => {
     } catch (error) {
       console.error('Error fetching bookings:', error);
     }
-  }, [language]);
+  }, []);
 
   const isDateBooked = (date: Date) => {
     return bookings.some(booking => 
