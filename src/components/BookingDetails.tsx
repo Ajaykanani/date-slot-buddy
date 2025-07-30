@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, User, Phone, IndianRupee, FileText, Edit, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
 import { BookingData } from './BookingCalendar';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate } from '@/utils/dateUtils';
 
 interface BookingDetailsProps {
   isOpen: boolean;
@@ -22,15 +23,15 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
   onEdit,
   onDelete
 }) => {
+  const { language, t } = useLanguage();
   if (!booking) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
-            Booking Details
+            {t('bookingDetails')}
           </DialogTitle>
         </DialogHeader>
         
@@ -38,11 +39,11 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
           {/* Date Badge */}
           <div className="text-center">
             <Badge variant="secondary" className="text-lg px-4 py-2">
-              {format(booking.dates[0], 'MMM dd')}
-              {booking.dates.length > 1 && ` - ${format(booking.dates[booking.dates.length - 1], 'MMM dd, yyyy')}`}
+              {formatDate(booking.dates[0], 'MMM dd', language)}
+              {booking.dates.length > 1 && ` - ${formatDate(booking.dates[booking.dates.length - 1], 'MMM dd, yyyy', language)}`}
             </Badge>
             <p className="text-sm text-muted-foreground mt-1">
-              {booking.dates.length} day{booking.dates.length > 1 ? 's' : ''}
+            {t('days').replace('{date}', booking.dates.length.toString())}
             </p>
           </div>
 
@@ -55,7 +56,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
                   variant="outline" 
                   className="text-sm justify-start"
                 >
-                  {format(date, 'EEE, MMM dd')}
+                  {formatDate(date, 'EEE, MMM dd', language)}
                 </Badge>
               ))}
             </div>
@@ -68,7 +69,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
             <div className="flex items-start gap-3">
               <User className="w-5 h-5 text-primary mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-sm text-muted-foreground">Full Name</p>
+                <p className="font-medium text-sm text-muted-foreground">{t('fullName')}</p>
                 <p className="font-semibold">{booking.fullName}</p>
               </div>
             </div>
@@ -76,7 +77,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
             <div className="flex items-start gap-3">
               <Phone className="w-5 h-5 text-primary mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-sm text-muted-foreground">Phone Number</p>
+                <p className="font-medium text-sm text-muted-foreground">{t('phoneNumber')}</p>
                 <p className="font-semibold">{booking.phoneNumber}</p>
               </div>
             </div>
@@ -84,7 +85,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
             <div className="flex items-start gap-3">
               <IndianRupee className="w-5 h-5 text-primary mt-0.5" />
               <div className="flex-1">
-                <p className="font-medium text-sm text-muted-foreground">Price</p>
+                <p className="font-medium text-sm text-muted-foreground">{t('price')}</p>
                 <p className="font-semibold text-lg text-primary">₹{booking.price}</p>
               </div>
             </div>
@@ -93,7 +94,7 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
               <div className="flex items-start gap-3">
                 <FileText className="w-5 h-5 text-primary mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-medium text-sm text-muted-foreground">Other Details</p>
+                  <p className="font-medium text-sm text-muted-foreground">{t('otherDetailsOnly')}</p>
                   <p className="text-sm bg-accent/50 p-3 rounded-lg mt-1">
                     {booking.otherDetails}
                   </p>
@@ -107,16 +108,16 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
           <div className="flex gap-3">
             <Button variant="outline" onClick={onEdit} className="flex-1">
               <Edit className="w-4 h-4 mr-2" />
-              Edit
+              {t('edit')}
             </Button>
             <Button variant="destructive" onClick={onDelete} className="flex-1">
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+              {t('delete')}
             </Button>
           </div>
           
           <Button variant="secondary" onClick={onClose} className="w-full">
-            Close
+            {t('close')}
           </Button>
         </div>
       </DialogContent>

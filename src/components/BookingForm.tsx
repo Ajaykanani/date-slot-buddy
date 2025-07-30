@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Calendar, User, Phone, IndianRupee, FileText } from 'lucide-react';
-import { format } from 'date-fns';
 import { BookingData } from './BookingCalendar';
 import { Badge } from './ui/badge';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate } from '@/utils/dateUtils';
 
 const bookingSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -80,28 +81,30 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     onClose();
   };
 
+  const { language, t } = useLanguage();
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
-            {editingBooking ? 'Edit Booking' : 'Book Dates'}
+            {editingBooking ? t('editBooking') : t('bookDate')}
           </DialogTitle>
         </DialogHeader>
         
         {selectedDates.length > 0 && (
           <div className="mb-4">
-            <p className="text-sm font-medium mb-2">Selected Dates:</p>
+            <p className="text-sm font-medium mb-2">{t('selectedDatesLabel')}</p>
             <div className="flex flex-wrap gap-2">
               {selectedDates.map((date) => (
                 <Badge key={date.toString()} variant="secondary">
-                  {format(date, 'MMM dd')}
+                  {formatDate(date, 'MMM dd', language)}
                 </Badge>
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedDates.length} day{selectedDates.length > 1 ? 's' : ''} total
+              {t('daysTotal').replace('{count}', String(selectedDates.length)).replace('{s}', selectedDates.length > 1 ? 's' : '')}
             </p>
           </div>
         )}
@@ -110,12 +113,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="fullName" className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              Full Name
+              {t('fullName')}
             </Label>
             <Input
               id="fullName"
               {...register('fullName')}
-              placeholder="Enter your full name"
+              placeholder={t('enterFullName')}
               className="transition-all focus:ring-2 focus:ring-primary/20"
             />
             {errors.fullName && (
@@ -126,11 +129,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="phoneNumber" className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              Phone Number
+              {t('phoneNumber')}
             </Label>
             <Input
               id="phoneNumber"
-              placeholder="Enter 10-digit mobile number"
+              placeholder={t('enterPhone')}
               type="tel"
               maxLength={10}
               className="transition-all focus:ring-2 focus:ring-primary/20"
@@ -154,12 +157,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="price" className="flex items-center gap-2">
               <IndianRupee className="w-4 h-4" />
-              Price
+              {t('price')}
             </Label>
             <Input
               id="price"
               {...register('price')}
-              placeholder="Enter amount in rupees"
+              placeholder={t('enterAmount')}
               type="number"
               min="1"
               className="transition-all focus:ring-2 focus:ring-primary/20"
@@ -172,12 +175,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="otherDetails" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              Other Details (Optional)
+              {t('otherDetails')}
             </Label>
             <Textarea
               id="otherDetails"
               {...register('otherDetails')}
-              placeholder="Any additional information..."
+              placeholder={t('additionalInfo')}
               rows={3}
               className="transition-all focus:ring-2 focus:ring-primary/20"
             />
@@ -185,10 +188,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" className="flex-1 bg-gradient-to-r from-primary to-primary-glow">
-              {editingBooking ? 'Update Booking' : 'Book Date'}
+              {editingBooking ? t('updateBooking') : t('bookDate')}
             </Button>
           </div>
         </form>

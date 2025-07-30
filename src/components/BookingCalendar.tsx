@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye, Calendar as CalendarIcon, User } from 'lucide-react';
-import { format, isSameDay, addDays, isAfter, isBefore } from 'date-fns';
+import { isSameDay, addDays, isAfter, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BookingForm } from './BookingForm';
 import { BookingDetails } from './BookingDetails';
 import { environment } from '@/environments/environment.development';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDate } from '@/utils/dateUtils';
+
 const { apiUrl } = environment;
 
 export interface BookingData {
@@ -28,6 +31,20 @@ const BookingCalendar = () => {
   const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
   const [editingBooking, setEditingBooking] = useState<BookingData | null>(null);
 
+  const { language, setLanguage, t } = useLanguage();
+
+  const renderLanguageSwitcher = () => (
+    <div className="absolute top-4 right-4">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
+      >
+        {language === 'en' ? 'ગુજરાતી' : 'English'}
+      </Button>
+    </div>
+  );
+
   const fetchBookings = useCallback(async () => {
     try {
       const res = await fetch(`${apiUrl}/booking`);
@@ -46,7 +63,7 @@ const BookingCalendar = () => {
     } catch (error) {
       console.error('Error fetching bookings:', error);
     }
-  }, []);
+  }, [language]);
 
   const isDateBooked = (date: Date) => {
     return bookings.some(booking => 
@@ -103,7 +120,7 @@ const BookingCalendar = () => {
     if (selectedDates.length === 0) return;
     
     const payload = {
-      dates: selectedDates.map(date => format(date, 'yyyy-MM-dd')),
+      dates: selectedDates.map(date => formatDate(date, 'yyyy-MM-dd', language)),
       fullName: bookingData.fullName,
       phone: bookingData.phoneNumber,
       price: bookingData.price,
@@ -191,14 +208,15 @@ const BookingCalendar = () => {
 
   return (
     <div className="min-h-screen bg-background p-4">
+      {renderLanguageSwitcher()}
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent mb-4">
-            Date Booking System
+            {t('bookingSystem')}
           </h1>
           <p className="text-muted-foreground text-lg">
-            Select consecutive dates to make a booking or view existing bookings
+            {t('selectDatesPrompt')}
           </p>
         </div>
 
@@ -208,12 +226,12 @@ const BookingCalendar = () => {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarIcon className="w-5 h-5 text-primary" />
-                Select Dates
+                {t('selectDates')}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
                 {selectedDates.length > 0 
-                  ? `Selected ${selectedDates.length} consecutive dates`
-                  : "Click on dates to select (must be consecutive)"}
+                ? t('selectedDates').replace('{count}', selectedDates.length.toString())
+                : t('clickToSelect')}
               </p>
             </CardHeader>
             <CardContent>
@@ -251,23 +269,23 @@ const BookingCalendar = () => {
               <div className="mt-4 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-success rounded-full"></div>
-                  <span className="text-sm text-muted-foreground">Booked dates</span>
+                  <span className="text-sm text-muted-foreground">{t('bookedDates')}</span>
                 </div>
                 <Button 
                   onClick={handleBookDates}
                   disabled={selectedDates.length === 0}
                   className="ml-auto"
                 >
-                  Book Selected Dates
+                  {t('bookSelectedDates')}
                 </Button>
               </div>
               {selectedDates.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">Selected Dates:</p>
+                  <p className="text-sm font-medium mb-2">{t('selectedDatesLabel')}</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedDates.map((date) => (
                       <Badge key={date.toString()} variant="secondary">
-                        {format(date, 'MMM dd')}
+                        {formatDate(date, 'MMM dd', language)}
                       </Badge>
                     ))}
                   </div>
@@ -281,16 +299,16 @@ const BookingCalendar = () => {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <User className="w-5 h-5 text-primary" />
-                Recent Bookings
+                {t('recentBookings')}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">View all booked dates and details</p>
+              <p className="text-sm text-muted-foreground">{t('viewBookings')}</p>
             </CardHeader>
             <CardContent>
               {bookings.length === 0 ? (
                 <div className="text-center py-8">
                   <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">No bookings yet</p>
-                  <p className="text-sm text-muted-foreground">Select dates to create your first booking</p>
+                  <p className="text-muted-foreground">{t('noBookings')}</p>
+                  <p className="text-sm text-muted-foreground">{t('createFirstBooking')}</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -304,11 +322,11 @@ const BookingCalendar = () => {
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs">
-                              {format(booking.dates[0], 'EEE MMM dd')}
-                              {booking.dates.length > 1 && ` - ${format(booking.dates[booking.dates.length - 1], 'EEE MMM dd, yyyy')}`}
+                              {formatDate(booking.dates[0], 'EEE MMM dd', language)}
+                              {booking.dates.length > 1 && ` - ${formatDate(booking.dates[booking.dates.length - 1], 'EEE MMM dd, yyyy', language)}`}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {booking.dates.length} day{booking.dates.length > 1 ? 's' : ''}
+                              {t('days').replace('{date}', booking.dates.length.toString())}
                             </Badge>
                           </div>
                           <p className="font-medium text-sm">{booking.fullName}</p>
@@ -323,7 +341,7 @@ const BookingCalendar = () => {
                             className="mt-1 h-6 px-2"
                           >
                             <Eye className="w-3 h-3 mr-1" />
-                            Details
+                            {t('details')}
                           </Button>
                         </div>
                       </div>
