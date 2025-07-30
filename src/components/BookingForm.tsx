@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar, User, Phone, IndianRupee, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { BookingData } from './BookingCalendar';
+import { Badge } from './ui/badge';
 
 const bookingSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -27,7 +28,7 @@ interface BookingFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: Omit<BookingData, 'id'>) => void;
-  selectedDate?: Date;
+  selectedDates?: Date[];
   editingBooking?: BookingData | null;
 }
 
@@ -35,7 +36,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  selectedDate,
+  selectedDates = [],
   editingBooking
 }) => {
   const {
@@ -61,10 +62,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   }, [editingBooking, setValue, reset]);
 
   const handleFormSubmit = (data: BookingFormData) => {
-    if (!selectedDate) return;
+    if (!selectedDates || selectedDates.length === 0) return;
     
     onSubmit({
-      date: selectedDate,
+      dates: selectedDates,
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
       price: Number(data.price),
@@ -85,9 +86,25 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
-            {editingBooking ? 'Edit Booking' : 'Book Date'}: {selectedDate && format(selectedDate, 'MMMM dd, yyyy')}
+            {editingBooking ? 'Edit Booking' : 'Book Dates'}
           </DialogTitle>
         </DialogHeader>
+        
+        {selectedDates.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium mb-2">Selected Dates:</p>
+            <div className="flex flex-wrap gap-2">
+              {selectedDates.map((date) => (
+                <Badge key={date.toString()} variant="secondary">
+                  {format(date, 'MMM dd')}
+                </Badge>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {selectedDates.length} day{selectedDates.length > 1 ? 's' : ''} total
+            </p>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="space-y-2">

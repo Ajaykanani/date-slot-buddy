@@ -38,8 +38,27 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
           {/* Date Badge */}
           <div className="text-center">
             <Badge variant="secondary" className="text-lg px-4 py-2">
-              {format(booking.date, 'EEEE, MMMM dd, yyyy')}
+              {format(booking.dates[0], 'MMM dd')}
+              {booking.dates.length > 1 && ` - ${format(booking.dates[booking.dates.length - 1], 'MMM dd, yyyy')}`}
             </Badge>
+            <p className="text-sm text-muted-foreground mt-1">
+              {booking.dates.length} day{booking.dates.length > 1 ? 's' : ''}
+            </p>
+          </div>
+
+          {/* Show all dates in a scrollable list */}
+          <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
+            <div className="grid grid-cols-2 gap-2">
+              {booking.dates.map((date) => (
+                <Badge 
+                  key={date.toString()} 
+                  variant="outline" 
+                  className="text-sm justify-start"
+                >
+                  {format(date, 'EEE, MMM dd')}
+                </Badge>
+              ))}
+            </div>
           </div>
 
           <Separator />
