@@ -249,7 +249,7 @@ const BookingCalendar = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs">
-                              {format(booking.date, 'MMM dd, yyyy')}
+                              {format(booking.date, 'EEE, MMM dd, yyyy')}
                             </Badge>
                           </div>
                           <p className="font-medium text-sm">{booking.fullName}</p>
