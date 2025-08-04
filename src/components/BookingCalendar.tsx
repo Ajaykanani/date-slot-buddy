@@ -3,8 +3,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Calendar as CalendarIcon, User } from 'lucide-react';
-import { isSameDay, addDays, isAfter, isBefore } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Eye, Calendar as CalendarIcon, User, Filter } from 'lucide-react';
+import { isSameDay, addDays, isAfter, isBefore, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { BookingForm } from './BookingForm';
 import { BookingDetails } from './BookingDetails';
@@ -30,8 +31,41 @@ const BookingCalendar = () => {
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
   const [editingBooking, setEditingBooking] = useState<BookingData | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   const { language, setLanguage, t } = useLanguage();
+
+  // Get available months from bookings
+  const getAvailableMonths = () => {
+    const months = new Set<string>();
+    bookings.forEach(booking => {
+      booking.dates.forEach(date => {
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        months.add(monthKey);
+      });
+    });
+    return Array.from(months).sort().reverse();
+  };
+
+  // Filter bookings by selected month
+  const filteredBookings = bookings.filter(booking => {
+    if (selectedMonth === 'all') return true;
+    
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const startDate = startOfMonth(new Date(year, month - 1, 1));
+    const endDate = endOfMonth(new Date(year, month - 1, 1));
+    
+    return booking.dates.some(date => 
+      isWithinInterval(date, { start: startDate, end: endDate })
+    );
+  });
+
+  // Format month for display
+  const formatMonthDisplay = (monthKey: string) => {
+    const [year, month] = monthKey.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    return formatDate(date, 'MMMM yyyy', language);
+  };
 
   const renderLanguageSwitcher = () => (
     <div className="absolute top-4 right-4">
@@ -301,18 +335,42 @@ const BookingCalendar = () => {
                 <User className="w-5 h-5 text-primary" />
                 {t('recentBookings')}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">{t('viewBookings')}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">{t('viewBookings')}</p>
+                {bookings.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger className="w-40 h-8 text-xs">
+                        <SelectValue placeholder={t('filterByMonth')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('allMonths')}</SelectItem>
+                        {getAvailableMonths().map((monthKey) => (
+                          <SelectItem key={monthKey} value={monthKey}>
+                            {formatMonthDisplay(monthKey)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {bookings.length === 0 ? (
+              {filteredBookings.length === 0 ? (
                 <div className="text-center py-8">
                   <CalendarIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">{t('noBookings')}</p>
-                  <p className="text-sm text-muted-foreground">{t('createFirstBooking')}</p>
+                  <p className="text-muted-foreground">
+                    {bookings.length === 0 ? t('noBookings') : t('noBookingsForMonth')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {bookings.length === 0 ? t('createFirstBooking') : t('tryDifferentMonth')}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {bookings
+                  {filteredBookings
                     .sort((a, b) => b.dates[0].getTime() - a.dates[0].getTime())
                     .map((booking) => (
                       <div
