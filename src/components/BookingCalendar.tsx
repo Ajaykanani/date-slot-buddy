@@ -9,11 +9,9 @@ import { isSameDay, addDays, isAfter, isBefore, startOfMonth, endOfMonth, isWith
 import { cn } from '@/lib/utils';
 import { BookingForm } from './BookingForm';
 import { BookingDetails } from './BookingDetails';
-import { environment } from '@/environments/environment.development';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatDate } from '@/utils/dateUtils';
-
-const { apiUrl } = environment;
+import * as bookingService from '@/services/bookingService';
 
 export interface BookingData {
   id: string;
@@ -81,21 +79,11 @@ const BookingCalendar = () => {
 
   const fetchBookings = useCallback(async () => {
     try {
-      const res = await fetch(`${apiUrl}/booking`);
-      const result = await res.json();
-      if (result.message === 'success' && Array.isArray(result.data)) {
-        const formattedBookings: BookingData[] = result.data.map((booking) => ({
-          id: booking._id,
-          dates: booking.dates.map((date: string) => new Date(date)),
-          fullName: booking.fullName,
-          phoneNumber: booking.phone,
-          price: booking.price,
-          otherDetails: booking.details
-        }));
-        setBookings(formattedBookings);
-      }
+      const bookingsData = await bookingService.fetchBookings();
+      setBookings(bookingsData);
     } catch (error) {
       console.error('Error fetching bookings:', error);
+      alert('Failed to fetch bookings. Please check your Supabase configuration.');
     }
   }, []);
 
@@ -153,46 +141,27 @@ const BookingCalendar = () => {
   const handleBookingSubmit = async (bookingData: Omit<BookingData, 'id' | 'dates'>) => {
     if (selectedDates.length === 0) return;
     
-    const payload = {
-      dates: selectedDates.map(date => formatDate(date, 'yyyy-MM-dd', language)),
+    const bookingPayload: Omit<BookingData, 'id'> = {
+      dates: selectedDates,
       fullName: bookingData.fullName,
-      phone: bookingData.phoneNumber,
+      phoneNumber: bookingData.phoneNumber,
       price: bookingData.price,
-      details: bookingData.otherDetails || "",
+      otherDetails: bookingData.otherDetails || "",
     };
   
     try {
       if (editingBooking) {
-        const res = await fetch(`${apiUrl}/booking/${editingBooking.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-  
-        const result = await res.json();
-        if (result.message === 'success') {
-          console.log('Booking updated successfully');
-        }
+        await bookingService.updateBooking(editingBooking.id, bookingPayload);
+        console.log('Booking updated successfully');
       } else {
-        const res = await fetch(`${apiUrl}/booking`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-  
-        const result = await res.json();
-        if (result.message === 'success') {
-          console.log('Booking created successfully');
-        }
+        await bookingService.createBooking(bookingPayload);
+        console.log('Booking created successfully');
       }
   
-      fetchBookings();
+      await fetchBookings();
     } catch (error) {
       console.error('Booking submit error:', error);
+      alert(`Failed to ${editingBooking ? 'update' : 'create'} booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   
     setSelectedDates([]);
@@ -214,23 +183,14 @@ const BookingCalendar = () => {
 
   const handleDeleteBooking = async (bookingId: string) => {
     try {
-        // DELETE /booking/:id (delete booking)
-        const res = await fetch(`${apiUrl}/booking/${bookingId}`, {
-          method: 'DELETE',
-        });
-  
-        const result = await res.json();
-        if (result.message === 'success') {
-          console.log('Booking deleted successfully');
-        } else {
-          console.error('Error updating booking:', result);
-        }
-     
-  
+      await bookingService.deleteBooking(bookingId);
+      console.log('Booking deleted successfully');
+      
       // Refresh bookings
-      fetchBookings();
+      await fetchBookings();
     } catch (error) {
-      console.error('Booking submit error:', error);
+      console.error('Booking delete error:', error);
+      alert('Failed to delete booking. Please try again.');
     }
     setShowBookingDetails(false);
     setSelectedBooking(null);
