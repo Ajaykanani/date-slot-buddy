@@ -18,8 +18,8 @@ const bookingSchema = z.object({
   phoneNumber: z.string()
     .regex(/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian mobile number'),
   price: z.string()
-    .regex(/^\d+$/, 'Price must be a valid number')
-    .refine((val) => parseInt(val) > 0, 'Price must be greater than 0'),
+    .regex(/^\d+(\.\d{1,2})?$/, 'Price must be a valid number with up to 2 decimal places')
+    .refine((val) => parseFloat(val) > 0, 'Price must be greater than 0'),
   otherDetails: z.string().optional()
 });
 
@@ -64,15 +64,15 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
   const handleFormSubmit = (data: BookingFormData) => {
     if (!selectedDates || selectedDates.length === 0) return;
-    
+
     onSubmit({
       dates: selectedDates,
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
-      price: Number(data.price),
+      price: parseFloat(data.price),
       otherDetails: data.otherDetails || ''
     });
-    
+
     reset();
   };
 
@@ -92,7 +92,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             {editingBooking ? t('editBooking') : t('bookDate')}
           </DialogTitle>
         </DialogHeader>
-        
+
         {selectedDates.length > 0 && (
           <div className="mb-4">
             <p className="text-sm font-medium mb-2">{t('selectedDatesLabel')}</p>
@@ -108,7 +108,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             </p>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fullName" className="flex items-center gap-2">
@@ -164,7 +164,8 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               {...register('price')}
               placeholder={t('enterAmount')}
               type="number"
-              min="1"
+              min="0"
+              step="0.01"
               className="transition-all focus:ring-2 focus:ring-primary/20"
             />
             {errors.price && (
