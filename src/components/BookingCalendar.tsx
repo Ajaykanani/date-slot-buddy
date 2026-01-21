@@ -9,13 +9,19 @@ import { isSameDay, addDays, isAfter, isBefore, startOfMonth, endOfMonth, isWith
 import { cn } from '@/lib/utils';
 import { BookingForm } from './BookingForm';
 import { BookingDetails } from './BookingDetails';
+import { DateBookingsDialog } from './DateBookingsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatDate } from '@/utils/dateUtils';
 import * as bookingService from '@/services/bookingService';
 
+export interface DateSlot {
+  date: Date;
+  startTime: string; // Format: HH:mm
+}
+
 export interface BookingData {
   id: string;
-  dates: Date[];
+  dateSlots: DateSlot[]; // Array of date-time pairs
   fullName: string;
   phoneNumber: string;
   price: number;
@@ -27,6 +33,8 @@ const BookingCalendar = () => {
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
+  const [showDateBookingsDialog, setShowDateBookingsDialog] = useState(false);
+  const [selectedDateForDialog, setSelectedDateForDialog] = useState<Date | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
   const [editingBooking, setEditingBooking] = useState<BookingData | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
@@ -37,8 +45,8 @@ const BookingCalendar = () => {
   const getAvailableMonths = () => {
     const months = new Set<string>();
     bookings.forEach(booking => {
-      booking.dates.forEach(date => {
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      booking.dateSlots.forEach(slot => {
+        const monthKey = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}`;
         months.add(monthKey);
       });
     });
@@ -48,13 +56,13 @@ const BookingCalendar = () => {
   // Filter bookings by selected month
   const filteredBookings = bookings.filter(booking => {
     if (selectedMonth === 'all') return true;
-    
+
     const [year, month] = selectedMonth.split('-').map(Number);
     const startDate = startOfMonth(new Date(year, month - 1, 1));
     const endDate = endOfMonth(new Date(year, month - 1, 1));
-    
-    return booking.dates.some(date => 
-      isWithinInterval(date, { start: startDate, end: endDate })
+
+    return booking.dateSlots.some(slot =>
+      isWithinInterval(slot.date, { start: startDate, end: endDate })
     );
   });
 
@@ -67,9 +75,9 @@ const BookingCalendar = () => {
 
   const renderLanguageSwitcher = () => (
     <div className="absolute top-4 right-4">
-      <Button 
-        variant="outline" 
-        size="sm" 
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => setLanguage(language === 'en' ? 'gu' : 'en')}
       >
         {language === 'en' ? 'ગુજરાતી' : 'English'}
@@ -88,45 +96,34 @@ const BookingCalendar = () => {
   }, []);
 
   const isDateBooked = (date: Date) => {
-    return bookings.some(booking => 
-      booking.dates.some(bookingDate => isSameDay(bookingDate, date))
+    return bookings.some(booking =>
+      booking.dateSlots.some(slot => isSameDay(slot.date, date))
     );
   };
 
-  const getBookingForDate = (date: Date) => {
-    return bookings.find(booking => 
-      booking.dates.some(bookingDate => isSameDay(bookingDate, date))
+  const getBookingsForDate = (date: Date) => {
+    return bookings.filter(booking =>
+      booking.dateSlots.some(slot => isSameDay(slot.date, date))
     );
   };
 
   const handleDateSelect = (date: Date) => {
-    const existingBooking = getBookingForDate(date);
-    if (existingBooking) {
-      setSelectedBooking(existingBooking);
-      setShowBookingDetails(true);
+    // If date is already booked, show the bookings dialog
+    if (isDateBooked(date)) {
+      setSelectedDateForDialog(date);
+      setShowDateBookingsDialog(true);
       return;
     }
 
+    // If date is not booked, add to selection
     setSelectedDates(prev => {
       // If date is already selected, remove it
       if (prev.some(d => isSameDay(d, date))) {
         return prev.filter(d => !isSameDay(d, date));
       }
-      
+
       // Add the date and sort them
-      const newDates = [...prev, date].sort((a, b) => a.getTime() - b.getTime());
-      
-      // Ensure dates are in sequence (consecutive)
-      for (let i = 1; i < newDates.length; i++) {
-        const prevDate = newDates[i - 1];
-        const currDate = newDates[i];
-        if (!isSameDay(addDays(prevDate, 1), currDate)) {
-          alert('Please select consecutive dates only');
-          return prev;
-        }
-      }
-      
-      return newDates;
+      return [...prev, date].sort((a, b) => a.getTime() - b.getTime());
     });
   };
 
@@ -138,32 +135,22 @@ const BookingCalendar = () => {
     setShowBookingForm(true);
   };
 
-  const handleBookingSubmit = async (bookingData: Omit<BookingData, 'id' | 'dates'>) => {
-    if (selectedDates.length === 0) return;
-    
-    const bookingPayload: Omit<BookingData, 'id'> = {
-      dates: selectedDates,
-      fullName: bookingData.fullName,
-      phoneNumber: bookingData.phoneNumber,
-      price: bookingData.price,
-      otherDetails: bookingData.otherDetails || "",
-    };
-  
+  const handleBookingSubmit = async (bookingData: Omit<BookingData, 'id'>) => {
     try {
       if (editingBooking) {
-        await bookingService.updateBooking(editingBooking.id, bookingPayload);
+        await bookingService.updateBooking(editingBooking.id, bookingData);
         console.log('Booking updated successfully');
       } else {
-        await bookingService.createBooking(bookingPayload);
+        await bookingService.createBooking(bookingData);
         console.log('Booking created successfully');
       }
-  
+
       await fetchBookings();
     } catch (error) {
       console.error('Booking submit error:', error);
       alert(`Failed to ${editingBooking ? 'update' : 'create'} booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  
+
     setSelectedDates([]);
     setEditingBooking(null);
     setShowBookingForm(false);
@@ -176,7 +163,7 @@ const BookingCalendar = () => {
 
   const handleEditBooking = (booking: BookingData) => {
     setEditingBooking(booking);
-    setSelectedDates(booking.dates);
+    setSelectedDates(booking.dateSlots.map(slot => slot.date));
     setShowBookingDetails(false);
     setShowBookingForm(true);
   };
@@ -185,7 +172,7 @@ const BookingCalendar = () => {
     try {
       await bookingService.deleteBooking(bookingId);
       console.log('Booking deleted successfully');
-      
+
       // Refresh bookings
       await fetchBookings();
     } catch (error) {
@@ -194,6 +181,34 @@ const BookingCalendar = () => {
     }
     setShowBookingDetails(false);
     setSelectedBooking(null);
+  };
+
+  const handleAddBookingForDate = () => {
+    if (selectedDateForDialog) {
+      setSelectedDates([selectedDateForDialog]);
+      setShowDateBookingsDialog(false);
+      setShowBookingForm(true);
+    }
+  };
+
+  const handleEditBookingFromDialog = (booking: BookingData) => {
+    setEditingBooking(booking);
+    setSelectedDates(booking.dateSlots.map(slot => slot.date));
+    setShowDateBookingsDialog(false);
+    setShowBookingForm(true);
+  };
+
+  const handleDeleteBookingFromDialog = async (bookingId: string) => {
+    try {
+      await bookingService.deleteBooking(bookingId);
+      console.log('Booking deleted successfully');
+
+      // Refresh bookings
+      await fetchBookings();
+    } catch (error) {
+      console.error('Booking delete error:', error);
+      alert('Failed to delete booking. Please try again.');
+    }
   };
 
   useEffect(() => {
@@ -223,9 +238,9 @@ const BookingCalendar = () => {
                 {t('selectDates')}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                {selectedDates.length > 0 
-                ? t('selectedDates').replace('{count}', selectedDates.length.toString())
-                : t('clickToSelect')}
+                {selectedDates.length > 0
+                  ? t('selectedDates').replace('{count}', selectedDates.length.toString())
+                  : t('clickToSelect')}
               </p>
             </CardHeader>
             <CardContent>
@@ -249,8 +264,8 @@ const BookingCalendar = () => {
                   selected: (date) => selectedDates.some(d => isSameDay(d, date))
                 }}
                 modifiersStyles={{
-                  booked: { 
-                    backgroundColor: 'hsl(var(--success))', 
+                  booked: {
+                    backgroundColor: 'hsl(var(--success))',
                     color: 'hsl(var(--success-foreground))',
                     fontWeight: 'bold'
                   },
@@ -265,7 +280,7 @@ const BookingCalendar = () => {
                   <div className="w-4 h-4 bg-success rounded-full"></div>
                   <span className="text-sm text-muted-foreground">{t('bookedDates')}</span>
                 </div>
-                <Button 
+                <Button
                   onClick={handleBookDates}
                   disabled={selectedDates.length === 0}
                   className="ml-auto"
@@ -331,7 +346,7 @@ const BookingCalendar = () => {
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {filteredBookings
-                    .sort((a, b) => b.dates[0].getTime() - a.dates[0].getTime())
+                    .sort((a, b) => b.dateSlots[0].date.getTime() - a.dateSlots[0].date.getTime())
                     .map((booking) => (
                       <div
                         key={booking.id}
@@ -340,11 +355,16 @@ const BookingCalendar = () => {
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs">
-                              {formatDate(booking.dates[0], 'EEE MMM dd', language)}
-                              {booking.dates.length > 1 && ` - ${formatDate(booking.dates[booking.dates.length - 1], 'EEE MMM dd, yyyy', language)}`}
+                              {booking.dateSlots.length === 1 ? (
+                                // Single date-time
+                                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd', language)} ${booking.dateSlots[0].startTime} IST`
+                              ) : (
+                                // Date-time range
+                                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd', language)} ${booking.dateSlots[0].startTime} IST - ${formatDate(booking.dateSlots[booking.dateSlots.length - 1].date, 'EEE MMM dd, yyyy', language)} ${booking.dateSlots[booking.dateSlots.length - 1].startTime} IST`
+                              )}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {t('days').replace('{date}', booking.dates.length.toString())}
+                              {t('days').replace('{date}', booking.dateSlots.length.toString())}
                             </Badge>
                           </div>
                           <p className="font-medium text-sm">{booking.fullName}</p>
@@ -392,6 +412,19 @@ const BookingCalendar = () => {
           booking={selectedBooking}
           onEdit={() => selectedBooking && handleEditBooking(selectedBooking)}
           onDelete={() => selectedBooking && handleDeleteBooking(selectedBooking.id)}
+        />
+
+        <DateBookingsDialog
+          isOpen={showDateBookingsDialog}
+          onClose={() => {
+            setShowDateBookingsDialog(false);
+            setSelectedDateForDialog(null);
+          }}
+          date={selectedDateForDialog}
+          bookings={bookings}
+          onAdd={handleAddBookingForDate}
+          onEdit={handleEditBookingFromDialog}
+          onDelete={handleDeleteBookingFromDialog}
         />
       </div>
     </div>

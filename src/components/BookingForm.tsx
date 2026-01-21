@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar, User, Phone, IndianRupee, FileText } from 'lucide-react';
+import { Calendar, User, Phone, IndianRupee, FileText, Clock } from 'lucide-react';
 import { BookingData } from './BookingCalendar';
 import { Badge } from './ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -50,6 +50,22 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     resolver: zodResolver(bookingSchema)
   });
 
+  // State to track times for each date
+  const [dateTimes, setDateTimes] = React.useState<Map<string, string>>(new Map());
+
+  // Helper to get date key without timezone conversion
+  const getDateKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Create a stable string representation of date keys for comparison
+  const selectedDateKeysString = React.useMemo(() => {
+    return selectedDates.map(date => getDateKey(date)).sort().join(',');
+  }, [selectedDates]);
+
   // Pre-fill form when editing
   React.useEffect(() => {
     if (editingBooking) {
@@ -57,16 +73,88 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       setValue('phoneNumber', editingBooking.phoneNumber);
       setValue('price', String(editingBooking.price));
       setValue('otherDetails', editingBooking.otherDetails);
+
+      // Pre-fill times from editing booking
+      const timesMap = new Map<string, string>();
+      editingBooking.dateSlots.forEach(slot => {
+        const dateKey = getDateKey(slot.date);
+        timesMap.set(dateKey, slot.startTime);
+      });
+      setDateTimes(timesMap);
     } else {
       reset();
+      // Only reset times if we're not editing
+      if (!editingBooking) {
+        setDateTimes(new Map());
+      }
     }
   }, [editingBooking, setValue, reset]);
+
+  // Initialize times ONLY for NEW dates that don't have a time yet
+  React.useEffect(() => {
+    if (!editingBooking && selectedDates.length > 0) {
+      setDateTimes(prev => {
+        const newTimes = new Map(prev);
+        let hasChanges = false;
+
+        selectedDates.forEach(date => {
+          const dateKey = getDateKey(date);
+          // ONLY set default if this date doesn't exist in our times map
+          // This ensures we never overwrite user-entered times
+          if (!newTimes.has(dateKey)) {
+            newTimes.set(dateKey, '00:00'); // Default time (IST midnight) - only for new dates
+            hasChanges = true;
+          }
+        });
+
+        // Only update state if we actually added new dates
+        return hasChanges ? newTimes : prev;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDateKeysString, editingBooking]); // Use the memoized string for comparison (selectedDates is included via selectedDateKeysString)
+
+  const handleTimeChange = React.useCallback((date: Date, time: string) => {
+    const dateKey = getDateKey(date);
+    // Preserve the exact time value entered by the user - no conversion, no default
+    setDateTimes(prev => {
+      const newMap = new Map(prev);
+      // Store exactly what user entered - even if empty string
+      newMap.set(dateKey, time || '00:00');
+      return newMap;
+    });
+  }, []);
 
   const handleFormSubmit = (data: BookingFormData) => {
     if (!selectedDates || selectedDates.length === 0) return;
 
+    // Validate that all dates have times
+    const missingTimes = selectedDates.filter(date => {
+      const dateKey = getDateKey(date);
+      return !dateTimes.get(dateKey);
+    });
+
+    if (missingTimes.length > 0) {
+      alert('Please provide start time for all selected dates');
+      return;
+    }
+
+    // Create date slots with times - use exactly what user entered
+    const dateSlots = selectedDates.map(date => {
+      const dateKey = getDateKey(date);
+      const time = dateTimes.get(dateKey);
+      if (!time) {
+        alert(`Please provide start time for ${formatDate(date, 'MMM dd', language)}`);
+        throw new Error('Missing time for date');
+      }
+      return {
+        date,
+        startTime: time // Use exactly what user entered, no default conversion
+      };
+    });
+
     onSubmit({
-      dates: selectedDates,
+      dateSlots,
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
       price: parseFloat(data.price),
@@ -74,10 +162,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     });
 
     reset();
+    setDateTimes(new Map());
   };
 
   const handleClose = () => {
     reset();
+    setDateTimes(new Map());
     onClose();
   };
 
@@ -94,14 +184,34 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         </DialogHeader>
 
         {selectedDates.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 space-y-3">
             <p className="text-sm font-medium mb-2">{t('selectedDatesLabel')}</p>
-            <div className="flex flex-wrap gap-2">
-              {selectedDates.map((date) => (
-                <Badge key={date.toString()} variant="secondary">
-                  {formatDate(date, 'MMM dd', language)}
-                </Badge>
-              ))}
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {selectedDates.map((date) => {
+                const dateKey = getDateKey(date);
+                const time = dateTimes.get(dateKey) || '00:00';
+                // Use a stable key based on date key to prevent React from recreating the input
+                return (
+                  <div key={dateKey} className="flex items-center gap-2 p-2 border rounded-lg">
+                    <Badge variant="secondary" className="flex-1">
+                      {formatDate(date, 'MMM dd', language)}
+                    </Badge>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="time"
+                        value={time}
+                        onChange={(e) => {
+                          const newTime = e.target.value;
+                          // Immediately update state with user's input - no delay, no conversion
+                          handleTimeChange(date, newTime);
+                        }}
+                        className="w-32"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {t('daysTotal').replace('{count}', String(selectedDates.length)).replace('{s}', selectedDates.length > 1 ? 's' : '')}

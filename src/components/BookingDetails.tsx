@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, User, Phone, IndianRupee, FileText, Edit, Trash2 } from 'lucide-react';
+import { Calendar, User, Phone, IndianRupee, FileText, Edit, Trash2, Clock } from 'lucide-react';
 import { BookingData } from './BookingCalendar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatDate } from '@/utils/dateUtils';
@@ -39,24 +39,33 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
           {/* Date Badge */}
           <div className="text-center">
             <Badge variant="secondary" className="text-lg px-4 py-2">
-              {formatDate(booking.dates[0], 'MMM dd', language)}
-              {booking.dates.length > 1 && ` - ${formatDate(booking.dates[booking.dates.length - 1], 'MMM dd, yyyy', language)}`}
+              {booking.dateSlots.length === 1 ? (
+                // Single date-time
+                `${formatDate(booking.dateSlots[0].date, 'MMM dd', language)} ${booking.dateSlots[0].startTime} IST`
+              ) : (
+                // Date-time range
+                `${formatDate(booking.dateSlots[0].date, 'MMM dd', language)} ${booking.dateSlots[0].startTime} IST - ${formatDate(booking.dateSlots[booking.dateSlots.length - 1].date, 'MMM dd, yyyy', language)} ${booking.dateSlots[booking.dateSlots.length - 1].startTime} IST`
+              )}
             </Badge>
             <p className="text-sm text-muted-foreground mt-1">
-            {t('days').replace('{date}', booking.dates.length.toString())}
+            {t('days').replace('{date}', booking.dateSlots.length.toString())}
             </p>
           </div>
 
-          {/* Show all dates in a scrollable list */}
+          {/* Show all date-time slots in a scrollable list */}
           <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
-            <div className="grid grid-cols-2 gap-2">
-              {booking.dates.map((date) => (
+            <div className="grid grid-cols-1 gap-2">
+              {booking.dateSlots.map((slot, index) => (
                 <Badge 
-                  key={date.toString()} 
+                  key={index} 
                   variant="outline" 
-                  className="text-sm justify-start"
+                  className="text-sm justify-between p-2"
                 >
-                  {formatDate(date, 'EEE, MMM dd', language)}
+                  <span>{formatDate(slot.date, 'EEE, MMM dd', language)}</span>
+                  <span className="flex items-center gap-1 ml-2">
+                    <Clock className="w-3 h-3" />
+                    {slot.startTime} IST
+                  </span>
                 </Badge>
               ))}
             </div>

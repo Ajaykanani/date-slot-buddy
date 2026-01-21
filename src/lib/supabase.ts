@@ -10,7 +10,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Types for Supabase database
 export interface BookingRow {
   id: string;
-  dates: string[]; // Array of date strings in ISO format
+  dates: string[]; // Array of datetime strings in ISO format with IST timezone (YYYY-MM-DDTHH:mm:ss+05:30)
   full_name: string;
   phone: string;
   price: number;
