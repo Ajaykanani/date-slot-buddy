@@ -11,7 +11,7 @@ import { BookingForm } from './BookingForm';
 import { BookingDetails } from './BookingDetails';
 import { DateBookingsDialog } from './DateBookingsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatDate } from '@/utils/dateUtils';
+import { formatDate, formatTimeToAMPM } from '@/utils/dateUtils';
 import * as bookingService from '@/services/bookingService';
 
 export interface DateSlot {
@@ -356,11 +356,11 @@ const BookingCalendar = () => {
                           <div className="flex flex-wrap items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs">
                               {booking.dateSlots.length === 1 ? (
-                                // Single date-time
-                                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd', language)} ${booking.dateSlots[0].startTime} IST`
+                                // Single date-time with year and AM/PM
+                                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd, yyyy', language)} ${formatTimeToAMPM(booking.dateSlots[0].startTime)} IST`
                               ) : (
-                                // Date-time range
-                                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd', language)} ${booking.dateSlots[0].startTime} IST - ${formatDate(booking.dateSlots[booking.dateSlots.length - 1].date, 'EEE MMM dd, yyyy', language)} ${booking.dateSlots[booking.dateSlots.length - 1].startTime} IST`
+                                // Date-time range with year for all dates and AM/PM
+                                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd, yyyy', language)} ${formatTimeToAMPM(booking.dateSlots[0].startTime)} IST - ${formatDate(booking.dateSlots[booking.dateSlots.length - 1].date, 'EEE MMM dd, yyyy', language)} ${formatTimeToAMPM(booking.dateSlots[booking.dateSlots.length - 1].startTime)} IST`
                               )}
                             </Badge>
                             <Badge variant="outline" className="text-xs">

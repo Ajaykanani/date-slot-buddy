@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, User, Phone, IndianRupee, FileText, Edit, Trash2, Clock } from 'lucide-react';
 import { BookingData } from './BookingCalendar';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatDate } from '@/utils/dateUtils';
+import { formatDate, formatTimeToAMPM } from '@/utils/dateUtils';
 
 interface BookingDetailsProps {
   isOpen: boolean;
@@ -40,11 +40,11 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
           <div className="text-center">
             <Badge variant="secondary" className="text-lg px-4 py-2">
               {booking.dateSlots.length === 1 ? (
-                // Single date-time
-                `${formatDate(booking.dateSlots[0].date, 'MMM dd', language)} ${booking.dateSlots[0].startTime} IST`
+                // Single date-time with year and AM/PM
+                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd, yyyy', language)} ${formatTimeToAMPM(booking.dateSlots[0].startTime)} IST`
               ) : (
-                // Date-time range
-                `${formatDate(booking.dateSlots[0].date, 'MMM dd', language)} ${booking.dateSlots[0].startTime} IST - ${formatDate(booking.dateSlots[booking.dateSlots.length - 1].date, 'MMM dd, yyyy', language)} ${booking.dateSlots[booking.dateSlots.length - 1].startTime} IST`
+                // Date-time range with year for all dates and AM/PM
+                `${formatDate(booking.dateSlots[0].date, 'EEE MMM dd, yyyy', language)} ${formatTimeToAMPM(booking.dateSlots[0].startTime)} IST - ${formatDate(booking.dateSlots[booking.dateSlots.length - 1].date, 'EEE MMM dd, yyyy', language)} ${formatTimeToAMPM(booking.dateSlots[booking.dateSlots.length - 1].startTime)} IST`
               )}
             </Badge>
             <p className="text-sm text-muted-foreground mt-1">
@@ -61,10 +61,10 @@ export const BookingDetails: React.FC<BookingDetailsProps> = ({
                   variant="outline" 
                   className="text-sm justify-between p-2"
                 >
-                  <span>{formatDate(slot.date, 'EEE, MMM dd', language)}</span>
+                  <span>{formatDate(slot.date, 'EEE, MMM dd, yyyy', language)}</span>
                   <span className="flex items-center gap-1 ml-2">
                     <Clock className="w-3 h-3" />
-                    {slot.startTime} IST
+                    {formatTimeToAMPM(slot.startTime)} IST
                   </span>
                 </Badge>
               ))}

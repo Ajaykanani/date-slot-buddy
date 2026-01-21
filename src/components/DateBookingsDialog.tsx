@@ -7,7 +7,7 @@ import { Calendar, Edit, Trash2, Plus, Clock } from 'lucide-react';
 import { isSameDay } from 'date-fns';
 import { BookingData } from './BookingCalendar';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatDate } from '@/utils/dateUtils';
+import { formatDate, formatTimeToAMPM } from '@/utils/dateUtils';
 
 interface DateBookingsDialogProps {
   isOpen: boolean;
@@ -82,7 +82,7 @@ export const DateBookingsDialog: React.FC<DateBookingsDialogProps> = ({
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="secondary" className="text-xs">
                             <Clock className="w-3 h-3 mr-1" />
-                            {dateSlot?.startTime ? `${dateSlot.startTime} IST` : 'N/A'}
+                            {dateSlot?.startTime ? `${formatTimeToAMPM(dateSlot.startTime)} IST` : 'N/A'}
                           </Badge>
                         </div>
                         <p className="font-semibold text-sm">{booking.fullName}</p>
@@ -100,7 +100,7 @@ export const DateBookingsDialog: React.FC<DateBookingsDialogProps> = ({
                         <div className="flex flex-wrap gap-1">
                           {booking.dateSlots.map((slot, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
-                              {formatDate(slot.date, 'MMM dd', language)} {slot.startTime} IST
+                              {formatDate(slot.date, 'MMM dd, yyyy', language)} {formatTimeToAMPM(slot.startTime)} IST
                             </Badge>
                           ))}
                         </div>
