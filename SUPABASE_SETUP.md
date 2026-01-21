@@ -29,9 +29,10 @@ This guide will walk you through setting up Supabase for the Date Slot Buddy boo
 
 ```sql
 -- Create bookings table
+-- Note: dates column is TEXT[] to store full datetime strings with timezone (e.g., "2026-01-24T01:20:00+05:30")
 CREATE TABLE bookings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  dates DATE[] NOT NULL,
+  dates TEXT[] NOT NULL,  -- Changed from DATE[] to TEXT[] to store datetime with time
   full_name TEXT NOT NULL,
   phone TEXT NOT NULL,
   price NUMERIC NOT NULL,
@@ -85,7 +86,7 @@ CREATE TRIGGER update_bookings_updated_at
 3. Click on it to view the table structure
 4. Verify that all columns are present:
    - id (uuid)
-   - dates (date[])
+   - dates (text[]) - Should be TEXT[] to store datetime strings like "2026-01-24T01:20:00+05:30"
    - full_name (text)
    - phone (text)
    - price (numeric)
@@ -146,16 +147,41 @@ npm run dev
    - Go to **Table Editor** > **bookings**
    - You should see your test booking in the table
 
-### Step 7: Insert Sample Data (Optional)
+### Step 7: Migrate Existing Database (If dates column is DATE[])
+
+If your existing database has `dates DATE[]`, you need to migrate it to `TEXT[]` to store datetime with time:
+
+```sql
+-- Step 1: Add a temporary column
+ALTER TABLE bookings ADD COLUMN dates_new TEXT[];
+
+-- Step 2: Migrate existing data (convert dates to datetime with 00:00 IST)
+UPDATE bookings 
+SET dates_new = ARRAY(
+  SELECT date_value || 'T00:00:00+05:30'
+  FROM unnest(dates) AS date_value
+);
+
+-- Step 3: Drop the old column
+ALTER TABLE bookings DROP COLUMN dates;
+
+-- Step 4: Rename the new column
+ALTER TABLE bookings RENAME COLUMN dates_new TO dates;
+
+-- Step 5: Make it NOT NULL
+ALTER TABLE bookings ALTER COLUMN dates SET NOT NULL;
+```
+
+### Step 8: Insert Sample Data (Optional)
 
 If you want to test with some sample data, run this SQL in the SQL Editor:
 
 ```sql
 INSERT INTO bookings (dates, full_name, phone, price, details)
 VALUES 
-  (ARRAY['2025-11-15', '2025-11-16']::DATE[], 'John Doe', '9876543210', 5000, 'Test booking 1'),
-  (ARRAY['2025-11-20']::DATE[], 'Jane Smith', '9123456789', 2500, 'Test booking 2'),
-  (ARRAY['2025-11-25', '2025-11-26', '2025-11-27']::DATE[], 'Bob Johnson', '9988776655', 7500, 'Test booking 3');
+  (ARRAY['2025-11-15T09:00:00+05:30', '2025-11-16T09:00:00+05:30'], 'John Doe', '9876543210', 5000, 'Test booking 1'),
+  (ARRAY['2025-11-20T14:30:00+05:30'], 'Jane Smith', '9123456789', 2500, 'Test booking 2'),
+  (ARRAY['2025-11-25T10:00:00+05:30', '2025-11-26T10:00:00+05:30', '2025-11-27T10:00:00+05:30'], 'Bob Johnson', '9988776655', 7500, 'Test booking 3');
 ```
 
 ## Security Considerations
@@ -215,10 +241,22 @@ CREATE POLICY "Authenticated users can delete bookings" ON bookings
 
 **Possible cause:**
 - Date format mismatch
+- Time component not being stored
 
 **Solution:**
 - Check the dates in the database (Table Editor)
-- Ensure dates are stored in `YYYY-MM-DD` format
+- Ensure dates are stored as TEXT[] with format `YYYY-MM-DDTHH:mm:ss+05:30` (e.g., "2026-01-24T01:20:00+05:30")
+- Verify the column type is `TEXT[]` not `DATE[]`
+
+### Issue: Time is not being stored in database
+
+**Possible cause:**
+- Database column is `DATE[]` which automatically strips time component
+
+**Solution:**
+- Run the migration script in Step 7 to change column type from `DATE[]` to `TEXT[]`
+- After migration, new bookings will store full datetime with time component
+- Check browser console for "Storing datetime strings:" log to verify what's being sent
 
 ### Issue: CORS errors
 
