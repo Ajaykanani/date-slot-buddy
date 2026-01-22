@@ -13,6 +13,8 @@ import { DateBookingsDialog } from './DateBookingsDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatDate, formatTimeToAMPM } from '@/utils/dateUtils';
 import * as bookingService from '@/services/bookingService';
+import { scheduleBookingNotifications, removeNotificationsForBooking, checkAndShowDueNotifications, hasNotificationPermission, scheduleNotificationsForAllBookings } from '@/services/notificationService';
+import { NotificationPermission } from './NotificationPermission';
 
 export interface DateSlot {
   date: Date;
@@ -137,12 +139,18 @@ const BookingCalendar = () => {
 
   const handleBookingSubmit = async (bookingData: Omit<BookingData, 'id'>) => {
     try {
+      let booking: BookingData;
       if (editingBooking) {
-        await bookingService.updateBooking(editingBooking.id, bookingData);
+        booking = await bookingService.updateBooking(editingBooking.id, bookingData);
         console.log('Booking updated successfully');
+        // Remove old notifications and schedule new ones
+        await removeNotificationsForBooking(editingBooking.id);
+        await scheduleBookingNotifications(booking);
       } else {
-        await bookingService.createBooking(bookingData);
+        booking = await bookingService.createBooking(bookingData);
         console.log('Booking created successfully');
+        // Schedule notifications for new booking
+        await scheduleBookingNotifications(booking);
       }
 
       await fetchBookings();
@@ -172,6 +180,9 @@ const BookingCalendar = () => {
     try {
       await bookingService.deleteBooking(bookingId);
       console.log('Booking deleted successfully');
+
+      // Remove notifications for deleted booking
+      await removeNotificationsForBooking(bookingId);
 
       // Refresh bookings
       await fetchBookings();
@@ -203,6 +214,9 @@ const BookingCalendar = () => {
       await bookingService.deleteBooking(bookingId);
       console.log('Booking deleted successfully');
 
+      // Remove notifications for deleted booking
+      await removeNotificationsForBooking(bookingId);
+
       // Refresh bookings
       await fetchBookings();
     } catch (error) {
@@ -213,12 +227,46 @@ const BookingCalendar = () => {
 
   useEffect(() => {
     fetchBookings();
+    
+    // Check for due notifications on mount and periodically
+    checkAndShowDueNotifications();
+    const notificationInterval = setInterval(() => {
+      checkAndShowDueNotifications();
+    }, 60 * 60 * 1000); // Check every hour
+
+    return () => clearInterval(notificationInterval);
   }, [fetchBookings]);
+
+  // Schedule notifications for all bookings when they're loaded and permission is granted
+  useEffect(() => {
+    if (hasNotificationPermission() && bookings.length > 0) {
+      // Schedule notifications for all bookings (function handles deduplication)
+      scheduleNotificationsForAllBookings(bookings).catch((error) => {
+        console.error('Error scheduling notifications for bookings:', error);
+      });
+    }
+  }, [bookings]); // Re-schedule when bookings change
+
+  // Handle notification permission being granted
+  const handleNotificationPermissionGranted = () => {
+    // Re-fetch bookings and schedule notifications
+    if (bookings.length > 0) {
+      scheduleNotificationsForAllBookings(bookings).catch((error) => {
+        console.error('Error scheduling notifications after permission granted:', error);
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-4">
       {renderLanguageSwitcher()}
       <div className="max-w-6xl mx-auto">
+        {/* Notification Permission Request */}
+        <NotificationPermission 
+          bookings={bookings} 
+          onPermissionGranted={handleNotificationPermissionGranted}
+        />
+        
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent mb-4">
